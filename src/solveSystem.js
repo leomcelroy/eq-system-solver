@@ -1,10 +1,14 @@
-import { evaluate } from './evaluate.js';
-import { linearAlgebra } from '../libs/linear-algebra.js';
-import { solve } from "./lusolve.js";
+import {
+  evaluate
+} from './evaluate.js';
+import {
+  linearAlgebra
+} from '../libs/linear-algebra.js';
+import {
+  lusolve
+} from "./lusolve.js";
 
 const Matrix = linearAlgebra().Matrix;
-
-const EPSILON = 0.001;
 
 const double = x => [x.val, x.der];
 
@@ -13,43 +17,42 @@ const parseComb = eqs => {
   return eqs.join("+");
 }
 
-const totalError = val_ders => val_ders[0].flat().reduce((acc, cur) => acc + cur**2, 0)/2;
+const totalError = val_ders => val_ders[0].flat().reduce((acc, cur) => acc + cur ** 2, 0) / 2;
 
-const get_val_ders = (eqs, variables) => eqs.reduce( (acc, cur) => {
-      let {val, der} = evaluate(cur, variables);
-      return [ [...acc[0], [val] ], [ ...acc[1], der ] ]
-  }, [ [], [] ] );
+const get_val_ders = (eqs, variables) => eqs.reduce((acc, cur) => {
+  let { val, der } = evaluate(cur, variables);
+  return [ [...acc[0], [val] ], [...acc[1], der] ]
+}, [ [], [] ]);
 
-function levenbergMarquardt (
-  eqs, 
-  variables, 
-  ogLambda = 10, 
-  { 
-    lambdaUp = 10, 
-    lambdaDown = 10, 
-    epsilon = EPSILON, 
-    fast = false 
+function levenbergMarquardt(
+  eqs,
+  variables, {
+    ogLambda = 10,
+    lambdaUp = 10,
+    lambdaDown = 10,
+    epsilon = 0.00001,
+    fast = false
   } = {}
 ) {
   let lambda = ogLambda;
   let updateJacobian = true;
   let converged = false;
 
-  let transJacobian, 
-      hessianApprox, 
-      residual, 
-      jacobian,
-      weighted, 
-      gradiant, 
-      new_val_ders,
-      costGradiant, 
-      a, 
-      b, 
-      deltas, 
-      error, 
-      newVariables, 
-      new_error, 
-      ds;
+  let transJacobian,
+    hessianApprox,
+    residual,
+    jacobian,
+    weighted,
+    gradiant,
+    new_val_ders,
+    costGradiant,
+    a,
+    b,
+    deltas,
+    error,
+    newVariables,
+    new_error,
+    ds;
 
 
   let val_ders = get_val_ders(eqs, variables);
@@ -57,7 +60,7 @@ function levenbergMarquardt (
   while (!converged) {
 
     if (updateJacobian) {
-      [ residual, jacobian ] = val_ders.map( x => new Matrix(x) );
+      [residual, jacobian] = val_ders.map(x => new Matrix(x));
       transJacobian = jacobian.trans();
       hessianApprox = transJacobian.dot(jacobian);
       updateJacobian = false;
@@ -69,8 +72,8 @@ function levenbergMarquardt (
 
     a = gradiant.toArray();
     b = costGradiant.toArray();
-    deltas = solve(a, b, fast);
-    
+    deltas = lusolve(a, b, fast);
+
     error = totalError(val_ders);
 
     newVariables = {};
@@ -98,24 +101,31 @@ function levenbergMarquardt (
   return newVariables;
 }
 
-const splitAt = (index, array) => {
+function splitAt (index, array) {
   let front = array.slice(0, index);
   let back = array.slice(index);
   return [front, back];
 }
 
-const solveSystem = (eqns, vars, forwardSubs = {}) => {
-  Object.entries(forwardSubs).forEach( ([variable, value]) => {
-    eqns = eqns.map( eq => eq.replaceAll(variable, value) );
+function solveSystem(eqns, vars, {
+  forwardSubs = {},
+  epsilon = 0.00001
+} = {}) {
+  Object.entries(forwardSubs).forEach(([variable, value]) => {
+    eqns = eqns.map(eq => eq.replaceAll(variable, value));
   })
 
-  if (eqns.length < 1) return [ [], vars ];
+  if (eqns.length < 1) return [
+    [], vars
+  ];
 
   let varsPrime;
   try {
-    varsPrime = levenbergMarquardt(eqns, vars);
+    varsPrime = levenbergMarquardt(eqns, vars, {
+      epsilon
+    });
 
-    Object.entries(forwardSubs).forEach( ([variable, value]) => {
+    Object.entries(forwardSubs).forEach(([variable, value]) => {
       if (typeof value === "string") varsPrime[variable] = varsPrime[value];
       else varsPrime[variable] = value;
     })
@@ -127,7 +137,7 @@ const solveSystem = (eqns, vars, forwardSubs = {}) => {
 
   // ------------ CHECK SATISFACTION ------------
   let scores = eqns.map(eq => evaluate(eq, varsPrime).val ** 2);
-  let satisfied = scores.map(score => score < Math.sqrt(EPSILON));
+  let satisfied = scores.map(score => score < Math.sqrt(epsilon));
 
   let result = [];
   if (satisfied.every(constraint => constraint === true)) {
@@ -142,7 +152,10 @@ const solveSystem = (eqns, vars, forwardSubs = {}) => {
     let [front, back] = splitAt(indices[0], eqns);
     let newEqs = front.concat(back.slice(1));
 
-    let [satisfiedPrime, out] = solveSystem(newEqs, varsPrime, forwardSubs);
+    let [satisfiedPrime, out] = solveSystem(newEqs, varsPrime, {
+      forwardSubs,
+      epsilon
+    });
 
     let [a, b] = splitAt(indices[0], satisfiedPrime);
 
@@ -152,4 +165,6 @@ const solveSystem = (eqns, vars, forwardSubs = {}) => {
   return result;
 }
 
-export { solveSystem }
+export {
+  solveSystem
+}

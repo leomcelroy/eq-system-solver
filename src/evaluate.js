@@ -59,7 +59,7 @@ const calculate = (exp, vars) => {
 }
 
 //takes (equation, [var, var...]) where e.g. var = {'x':'3'}
-export function evaluate(eq, variables) { //remove test
+export function evaluate(eq, variables) {
   let valder_vars = {};
   let length = Object.keys(variables).length;
 
