@@ -20,53 +20,6 @@ const get_val_ders = (eqs, variables) => eqs.reduce( (acc, cur) => {
       return [ [...acc[0], [val] ], [ ...acc[1], der ] ]
   }, [ [], [] ] );
 
-function levenbergMarquardtOld (
-  eqs, 
-  variables, 
-  lambda = 10, 
-  { 
-    lambdaUp = 10, 
-    lambdaDown = 10, 
-    epsilon = EPSILON, 
-    fast = false 
-  } = {}
-) {
-
-  const val_ders = get_val_ders(eqs, variables);
-  let [ residual, jacobian ] = val_ders.map( x => new Matrix(x) );
-  let transJacobian = jacobian.trans();
-  let hessianApprox = transJacobian.dot(jacobian);
-  let weighted = Matrix.scalar(hessianApprox.rows, lambda)
-  let gradiant = hessianApprox.plus(weighted);
-  let costGradiant = transJacobian.dot(residual);
-
-  const a = gradiant.toArray();
-  const b = costGradiant.toArray();
-  let deltas = solve(a, b, fast);
-  
-  let c = totalError(val_ders);
-
-  let newVariables = {};
-  Object.keys(variables).forEach((key, index) => {
-    newVariables[key] = variables[key] - deltas[index];
-  });
-
-  let [ newC, ds ] = double(evaluate(parseComb(eqs), newVariables));
-  newC = 0.5 * newC;
-
-  let converged = (newC < epsilon) || ds.every(der => Math.abs(der) < epsilon) || Math.abs(c - newC) < epsilon;
-  if (converged) return newVariables 
-
-  let newLambda;
-  if (newC < c) {
-    newLambda = lambda / lambdaDown;
-    return levenbergMarquardtOld(eqs, newVariables, newLambda);
-  } else {
-    newLambda = lambda * lambdaUp;
-    return levenbergMarquardtOld(eqs, variables, newLambda); 
-  }
-}
-
 function levenbergMarquardt (
   eqs, 
   variables, 
