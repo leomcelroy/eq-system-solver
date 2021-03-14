@@ -1,12 +1,6 @@
-import {
-  evaluate
-} from './evaluate.js';
-import {
-  linearAlgebra
-} from '../libs/linear-algebra.js';
-import {
-  lusolve
-} from "./lusolve.js";
+import { evaluate } from './evaluate.js';
+import { linearAlgebra } from '../libs/linear-algebra.js';
+import { lusolve } from "./lusolve.js";
 
 const Matrix = linearAlgebra().Matrix;
 
