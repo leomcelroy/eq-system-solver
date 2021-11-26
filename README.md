@@ -9,7 +9,7 @@ const test = solveSystem(eqns, guesses, { epsilon: 0.00001 })
 The library first parses the equations and then uses automatic differentiation and the levenberg-marquardt algorithm 
 to numerically find a minimum in a cost function constructed of the equations.
 
-The cost function takes the form of eq0^2 + eq1^2 + ... and o=absolute minima occur at zero if inital
+The cost function takes the form of eq0^2 + eq1^2 + ... and absolute minima occur at zero if inital
 equations are set equal to 0. The levenberg-marquardt algorithm is esstially a modified Newton's method
 with a relaxtion term.
 
